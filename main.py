@@ -67,10 +67,11 @@ class NumPad(wx.Dialog):
             self.value.Value = self.value.Value[1:]
 
     def onBtnEnter(self, event):
+        self.parent.Value = self.value.Value
         self.Close()
 
     def CreateCtrls(self):
-        self.value = wx.TextCtrl(self, style=wx.TE_RIGHT | wx.TE_READONLY, value="0")
+        self.value = wx.TextCtrl(self, style=wx.TE_RIGHT | wx.TE_READONLY, value=self.parent.Value)
         self.btn1 = wx.Button(self, label="1")
         self.btn2 = wx.Button(self, label="2")
         self.btn3 = wx.Button(self, label="3")
@@ -152,6 +153,41 @@ class SetUpTab(wx.Panel):
     def __init__(self, parent):
         wx.Panel.__init__(self, parent)
 
+        self.parent = parent
+        self.CreateCtrls()
+        self.DoLayout()
+
+    def CreateCtrls(self):
+        mainFont = wx.Font(24, wx.FONTFAMILY_DEFAULT, wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_BOLD)
+        largeFont = wx.Font(96, wx.FONTFAMILY_DEFAULT, wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_BOLD)
+
+        self.lPouchSize = wx.StaticText(self, label="Select Pouch Size")
+        self.lPouchSize.SetFont(mainFont)
+        self.btn750 = wx.ToggleButton(self, label="750mL", style=1)
+        self.btn750.Bind(wx.EVT_TOGGLEBUTTON, self.onBtn750)
+
+
+        self.btn1500 = wx.ToggleButton(self, label="1.5L", style=1)
+        self.btn1500.Bind(wx.EVT_TOGGLEBUTTON, self.onBtn1500)
+
+
+    def DoLayout(self):
+        sizer = wx.BoxSizer(wx.VERTICAL)
+        hsizer = wx.BoxSizer(wx.HORIZONTAL)
+        sizer.Add(self.lPouchSize, 0, wx.CENTER)
+        hsizer.Add(self.btn750, 1, wx.EXPAND)
+        hsizer.Add(self.btn1500, 1, wx.EXPAND)
+        sizer.Add(hsizer, 1, wx.EXPAND)
+
+        self.SetSizer(sizer)
+        self.Fit()
+
+    def onBtn750(self, event):
+        self.btn1500.SetValue(False)
+
+    def onBtn1500(self, event):
+        self.btn750.SetValue(False)
+
 
 class CalTab(wx.Panel):
     def __init__(self, parent):
@@ -162,12 +198,25 @@ class CalTab(wx.Panel):
         self.DoLayout()
 
     def CreateCtrls(self):
+        mainFont = wx.Font(24, wx.FONTFAMILY_DEFAULT, wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_BOLD)
+        largeFont = wx.Font(96, wx.FONTFAMILY_DEFAULT, wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_BOLD)
+
+        self.lTime = wx.StaticText(self, label="Fill Time (ms)")
+        self.lTime.SetFont(mainFont)
+
+        self.tTime = wx.TextCtrl(self, style=wx.TE_RIGHT | wx.TE_READONLY, value="0")
+        self.tTime.SetFont(largeFont)
+
         self.enterTimeBtn = wx.Button(self, label="Enter Time")
-        self.numPad = NumPad(self)
+        self.enterTimeBtn.SetFont(mainFont)
+
+        self.numPad = NumPad(self.tTime)
         self.enterTimeBtn.Bind(wx.EVT_BUTTON, self.onEnterTimeBtn)
 
     def DoLayout(self):
-        sizer = wx.BoxSizer(wx.HORIZONTAL)
+        sizer = wx.BoxSizer(wx.VERTICAL)
+        sizer.Add(self.lTime, 1, wx.CENTER)
+        sizer.Add(self.tTime, 1, wx.EXPAND)
         sizer.Add(self.enterTimeBtn, 0)
         self.SetSizer(sizer)
         self.Fit()
