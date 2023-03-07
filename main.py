@@ -2,6 +2,7 @@ import wx
 import os
 import sys
 
+
 class NumPad(wx.Dialog):
     def __init__(self, parent):
         wx.Dialog.__init__(self, parent)
@@ -159,16 +160,17 @@ class SetUpTab(wx.Panel):
 
     def CreateCtrls(self):
         mainFont = wx.Font(24, wx.FONTFAMILY_DEFAULT, wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_BOLD)
-        largeFont = wx.Font(96, wx.FONTFAMILY_DEFAULT, wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_BOLD)
+        mediumFont = wx.Font(48, wx.FONTFAMILY_DEFAULT, wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_BOLD)
 
         self.lPouchSize = wx.StaticText(self, label="Select Pouch Size")
         self.lPouchSize.SetFont(mainFont)
-        self.btn750 = wx.ToggleButton(self, label="750mL", style=1)
-        self.btn750.Bind(wx.EVT_TOGGLEBUTTON, self.onBtn750)
+        self.btn750 = wx.Button(self, label="750mL")
+        self.btn750.SetFont(mediumFont)
+        self.btn750.Bind(wx.EVT_BUTTON, self.onBtn750)
 
-
-        self.btn1500 = wx.ToggleButton(self, label="1.5L", style=1)
-        self.btn1500.Bind(wx.EVT_TOGGLEBUTTON, self.onBtn1500)
+        self.btn1500 = wx.Button(self, label="1.5L")
+        self.btn1500.SetFont(mediumFont)
+        self.btn1500.Bind(wx.EVT_BUTTON, self.onBtn1500)
 
 
     def DoLayout(self):
@@ -183,10 +185,12 @@ class SetUpTab(wx.Panel):
         self.Fit()
 
     def onBtn750(self, event):
-        self.btn1500.SetValue(False)
+        self.btn1500.SetBackgroundColour(wx.LIGHT_GREY)
+        self.btn750.SetBackgroundColour(wx.WHITE)
 
     def onBtn1500(self, event):
-        self.btn750.SetValue(False)
+        self.btn750.SetBackgroundColour(wx.LIGHT_GREY)
+        self.btn1500.SetBackgroundColour(wx.WHITE)
 
 
 class CalTab(wx.Panel):
@@ -200,6 +204,7 @@ class CalTab(wx.Panel):
     def CreateCtrls(self):
         mainFont = wx.Font(24, wx.FONTFAMILY_DEFAULT, wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_BOLD)
         largeFont = wx.Font(96, wx.FONTFAMILY_DEFAULT, wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_BOLD)
+        mediumFont = wx.Font(48, wx.FONTFAMILY_DEFAULT, wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_BOLD)
 
         self.lTime = wx.StaticText(self, label="Fill Time (ms)")
         self.lTime.SetFont(mainFont)
@@ -208,16 +213,16 @@ class CalTab(wx.Panel):
         self.tTime.SetFont(largeFont)
 
         self.enterTimeBtn = wx.Button(self, label="Enter Time")
-        self.enterTimeBtn.SetFont(mainFont)
+        self.enterTimeBtn.SetFont(mediumFont)
 
         self.numPad = NumPad(self.tTime)
         self.enterTimeBtn.Bind(wx.EVT_BUTTON, self.onEnterTimeBtn)
 
     def DoLayout(self):
         sizer = wx.BoxSizer(wx.VERTICAL)
-        sizer.Add(self.lTime, 1, wx.CENTER)
-        sizer.Add(self.tTime, 1, wx.EXPAND)
-        sizer.Add(self.enterTimeBtn, 0)
+        sizer.Add(self.lTime, 0, wx.CENTER)
+        sizer.Add(self.tTime, 0, wx.EXPAND)
+        sizer.Add(self.enterTimeBtn, 1, wx.EXPAND)
         self.SetSizer(sizer)
         self.Fit()
 
