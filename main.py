@@ -1,7 +1,12 @@
 import wx
 import os
 import sys
+import json
 
+conf = {}
+
+with open('config.json', 'r') as file:
+    conf = json.load(file)
 
 class NumPad(wx.Dialog):
     def __init__(self, parent):
@@ -71,6 +76,9 @@ class NumPad(wx.Dialog):
         self.parent.Value = self.value.Value
         self.Close()
 
+    def onLeave(self, event):
+        self.Close()
+
     def CreateCtrls(self):
         self.value = wx.TextCtrl(self, style=wx.TE_RIGHT | wx.TE_READONLY, value=self.parent.Value)
         self.btn1 = wx.Button(self, label="1")
@@ -82,9 +90,9 @@ class NumPad(wx.Dialog):
         self.btn7 = wx.Button(self, label="7")
         self.btn8 = wx.Button(self, label="8")
         self.btn9 = wx.Button(self, label="9")
-        self.btnDel = wx.Button(self, label="Del")
+        self.btnDel = wx.Button(self, label="⌫")
         self.btn0 = wx.Button(self, label="0")
-        self.btnEnter = wx.Button(self, label="Enter")
+        self.btnEnter = wx.Button(self, label="↵")
 
         mainFont = wx.Font(24, wx.FONTFAMILY_DEFAULT, wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_BOLD)
 
@@ -116,6 +124,8 @@ class NumPad(wx.Dialog):
         self.btn0.Bind(wx.EVT_BUTTON, self.onBtn0)
         self.btnEnter.Bind(wx.EVT_BUTTON, self.onBtnEnter)
 
+        self.Bind(wx.EVT_LEAVE_WINDOW, self.onLeave)
+
     def DoLayout(self):
         vSizer = wx.BoxSizer(wx.VERTICAL)
         row1Sizer = wx.BoxSizer(wx.HORIZONTAL)
@@ -141,13 +151,17 @@ class NumPad(wx.Dialog):
         row4Sizer.Add(self.btn0, 1)
         row4Sizer.Add(self.btnEnter, 1)
 
-        vSizer.Add(row1Sizer, 1, wx.EXPAND)
-        vSizer.Add(row2Sizer, 1, wx.EXPAND)
-        vSizer.Add(row3Sizer, 1, wx.EXPAND)
-        vSizer.Add(row4Sizer, 1, wx.EXPAND)
+        vSizer.Add(row1Sizer, 0, wx.EXPAND)
+        vSizer.Add(row2Sizer, 0, wx.EXPAND)
+        vSizer.Add(row3Sizer, 0, wx.EXPAND)
+        vSizer.Add(row4Sizer, 0, wx.EXPAND)
 
         self.SetSizer(vSizer)
-        self.Fit()
+
+        if conf['ON_RASP_PI']:
+            self.FitInside()
+        else:
+            self.Fit()
 
 
 class SetUpTab(wx.Panel):
@@ -159,8 +173,8 @@ class SetUpTab(wx.Panel):
         self.DoLayout()
 
     def CreateCtrls(self):
-        mainFont = wx.Font(24, wx.FONTFAMILY_DEFAULT, wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_BOLD)
-        mediumFont = wx.Font(48, wx.FONTFAMILY_DEFAULT, wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_BOLD)
+        mainFont = wx.Font(12, wx.FONTFAMILY_DEFAULT, wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_BOLD)
+        mediumFont = wx.Font(24, wx.FONTFAMILY_DEFAULT, wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_BOLD)
 
         self.lPouchSize = wx.StaticText(self, label="Select Pouch Size")
         self.lPouchSize.SetFont(mainFont)
@@ -182,7 +196,6 @@ class SetUpTab(wx.Panel):
         sizer.Add(hsizer, 1, wx.EXPAND)
 
         self.SetSizer(sizer)
-        self.Fit()
 
     def onBtn750(self, event):
         self.btn1500.SetBackgroundColour(wx.LIGHT_GREY)
@@ -202,9 +215,9 @@ class CalTab(wx.Panel):
         self.DoLayout()
 
     def CreateCtrls(self):
-        mainFont = wx.Font(24, wx.FONTFAMILY_DEFAULT, wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_BOLD)
-        largeFont = wx.Font(96, wx.FONTFAMILY_DEFAULT, wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_BOLD)
-        mediumFont = wx.Font(48, wx.FONTFAMILY_DEFAULT, wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_BOLD)
+        mainFont = wx.Font(12, wx.FONTFAMILY_DEFAULT, wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_BOLD)
+        largeFont = wx.Font(48, wx.FONTFAMILY_DEFAULT, wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_BOLD)
+        mediumFont = wx.Font(24, wx.FONTFAMILY_DEFAULT, wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_BOLD)
 
         self.lTime = wx.StaticText(self, label="Fill Time (ms)")
         self.lTime.SetFont(mainFont)
@@ -222,9 +235,8 @@ class CalTab(wx.Panel):
         sizer = wx.BoxSizer(wx.VERTICAL)
         sizer.Add(self.lTime, 0, wx.CENTER)
         sizer.Add(self.tTime, 0, wx.EXPAND)
-        sizer.Add(self.enterTimeBtn, 1, wx.EXPAND)
+        sizer.Add(self.enterTimeBtn, 1, wx.CENTER)
         self.SetSizer(sizer)
-        self.Fit()
 
     def onEnterTimeBtn(self, event):
         self.numPad.Show()
@@ -255,14 +267,18 @@ class EPCOptionsBox(wx.Panel):
         self.setUpTab = SetUpTab(self.notebook)
         self.calTab = CalTab(self.notebook)
         self.runTab = RunTab(self.notebook)
+        self.exitTab = wx.Panel(self.notebook)
 
         mainFont = wx.Font(24, wx.FONTFAMILY_DEFAULT, wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_BOLD)
 
         self.notebook.SetFont(mainFont)
 
-        self.notebook.AddPage(self.setUpTab, "        Setup         ")
-        self.notebook.AddPage(self.calTab,   "     Calibration      ")
-        self.notebook.AddPage(self.runTab,   "         Run          ")
+        self.notebook.AddPage(self.setUpTab, "       Setup      ")
+        self.notebook.AddPage(self.calTab,   "    Calibration   ")
+        self.notebook.AddPage(self.runTab,   "        Run       ")
+        self.notebook.AddPage(self.exitTab,  " X ")
+
+        self.notebook.Bind(wx.EVT_NOTEBOOK_PAGE_CHANGED, self.onExitTab)
 
     def DoLayout(self):
         sizer = wx.BoxSizer(wx.VERTICAL)
@@ -270,6 +286,9 @@ class EPCOptionsBox(wx.Panel):
         self.SetSizer(sizer)
         self.Fit()
 
+    def onExitTab(self, event):
+        if event.GetSelection() == 3:
+            wx.Exit()
 
 
 class EPCPanel(wx.Panel):
@@ -297,6 +316,9 @@ class EPCFrame(wx.Frame):
 
     def CreateCtrls(self):
         self.panel = EPCPanel(self)
+
+        if conf['ON_RASP_PI']:
+            self.ShowFullScreen(True)
 
 
 class EPC(wx.App):
