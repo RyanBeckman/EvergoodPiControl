@@ -5,7 +5,7 @@ import json
 
 conf = {}
 
-with open('config.json', 'r') as file:
+with open(os.path.split(os.path.abspath(sys.argv[0]))[0] + '//config.json', 'r') as file:
     conf = json.load(file)
 
 
@@ -235,6 +235,7 @@ class SetUpTab(wx.Panel):
     def onLastBtn(self, event):
         pass
 
+
 class CalTab(wx.Panel):
     def __init__(self, parent):
         wx.Panel.__init__(self, parent)
@@ -356,12 +357,12 @@ class RunTab(wx.Panel):
         hsizerL.Add(self.lFillCt, 0, wx.ALIGN_CENTER_VERTICAL | wx.RIGHT, 10)
         hsizerL.Add(self.tFillCt, 1, wx.EXPAND)
 
-        vsizerL.Add(self.lStatus, 0, wx.EXPAND)
-        vsizerL.Add(self.tStatus, 1, wx.EXPAND)
-        vsizerL.Add(hsizerL, 0, wx.EXPAND)
+        vsizerL.Add(self.lStatus, 0, wx.EXPAND | wx.ALL, 5)
+        vsizerL.Add(self.tStatus, 1, wx.EXPAND | wx.ALL, 5)
+        vsizerL.Add(hsizerL, 0, wx.EXPAND | wx.ALL, 5)
 
-        vsizerR.Add(self.runBtn, 1, wx.EXPAND)
-        vsizerR.Add(self.stopBtn, 1, wx.EXPAND)
+        vsizerR.Add(self.runBtn, 1, wx.EXPAND | wx.ALL, 5)
+        vsizerR.Add(self.stopBtn, 1, wx.EXPAND | wx.ALL, 5)
 
         hsizer.Add(vsizerL, 1, wx.EXPAND)
         hsizer.Add(vsizerR, 1, wx.EXPAND)
