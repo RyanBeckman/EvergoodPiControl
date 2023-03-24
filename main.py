@@ -165,6 +165,9 @@ class NumPad(wx.Dialog):
         if conf['ON_RASP_PI']:
             self.Close()
 
+    def SetValue(self, value):
+        self.value.Value = value
+
 
 class SetUpTab(wx.Panel):
     def __init__(self, parent):
@@ -199,8 +202,6 @@ class SetUpTab(wx.Panel):
         self.lastBtn.SetFont(mediumFont)
         self.loadBtn.Bind(wx.EVT_BUTTON, self.onLastBtn)
 
-        self.selection = '750mL'
-
     def DoLayout(self):
         vsizer = wx.BoxSizer(wx.VERTICAL)
         hsizer1 = wx.BoxSizer(wx.HORIZONTAL)
@@ -220,20 +221,29 @@ class SetUpTab(wx.Panel):
         self.SetSizer(vsizer)
 
     def onBtn750(self, event):
-        self.btn1500.SetBackgroundColour('grey')
-        self.btn750.SetBackgroundColour('lime green')
-        self.selection = self.Label
+        self.setVolume(750)
 
     def onBtn1500(self, event):
-        self.btn750.SetBackgroundColour('grey')
-        self.btn1500.SetBackgroundColour('lime green')
-        self.selection = self.Label
+        self.setVolume(1500)
 
     def onLoadBtn(self, event):
         pass
 
     def onLastBtn(self, event):
         pass
+
+    def setVolume(self, vol):
+        self.parent.parent.selection = vol
+
+        if vol == 750:
+            self.btn1500.SetBackgroundColour('grey')
+            self.btn750.SetBackgroundColour('lime green')
+        else:
+            self.btn750.SetBackgroundColour('grey')
+            self.btn1500.SetBackgroundColour('lime green')
+
+        self.parent.parent.calTab.tTime.Value = str(int(self.parent.parent.selection / self.parent.parent.rate))
+        self.parent.parent.calTab.tVol.Value = str(self.parent.parent.selection)
 
 
 class CalTab(wx.Panel):
@@ -252,7 +262,7 @@ class CalTab(wx.Panel):
         self.lTime = wx.StaticText(self, label="Fill Time (ms)")
         self.lTime.SetFont(mainFont)
 
-        self.tTime = wx.TextCtrl(self, style=wx.TE_RIGHT | wx.TE_READONLY, value="0")
+        self.tTime = wx.TextCtrl(self, style=wx.TE_RIGHT | wx.TE_READONLY, value=str(int(self.parent.parent.selection / self.parent.parent.rate)))
         self.tTime.SetFont(largeFont)
 
         self.enterTimeBtn = wx.Button(self, label="Enter Time")
@@ -268,7 +278,7 @@ class CalTab(wx.Panel):
         self.lVol = wx.StaticText(self, label="Volume (mL)")
         self.lVol.SetFont(mainFont)
 
-        self.tVol = wx.TextCtrl(self, style=wx.TE_RIGHT | wx.TE_READONLY, value="0")
+        self.tVol = wx.TextCtrl(self, style=wx.TE_RIGHT | wx.TE_READONLY, value=str(self.parent.parent.selection))
         self.tVol.SetFont(largeFont)
 
         self.enterVolBtn = wx.Button(self, label="Enter Volume")
@@ -303,15 +313,26 @@ class CalTab(wx.Panel):
 
     def onEnterTimeBtn(self, event):
         self.timeNumPad.Show()
+        self.timeNumPad.SetValue(self.tTime.Value)
 
     def onSaveBtn(self, event):
         pass
 
     def onEnterVolBtn(self, event):
         self.volNumPad.Show()
+        self.volNumPad.SetValue(self.tVol.Value)
 
     def onRecalcBtn(self, event):
-        pass
+
+        oldTime = self.tTime.Value
+        oldVol = self.tVol.Value
+        pouchSize = self.parent.parent.selection
+
+        newTime = int(oldTime) * pouchSize // int(oldVol)
+
+        self.tTime.Value = str(newTime)
+        self.tVol.Value = str(pouchSize)
+        self.parent.parent.rate = int(oldVol) / int(oldTime)
 
 
 class RunTab(wx.Panel):
@@ -380,13 +401,18 @@ class EPCOptionsBox(wx.Panel):
     def __init__(self, parent):
         wx.Panel.__init__(self, parent)
 
+        self.selection = 750
+        self.rate = 1500 / 8500
+
         self.CreateCtrls()
         self.DoLayout()
+
+        self.setupTab.setVolume(750)
 
     def CreateCtrls(self):
         self.notebook = EPCNotebook(self)
 
-        self.setUpTab = SetUpTab(self.notebook)
+        self.setupTab = SetUpTab(self.notebook)
         self.calTab = CalTab(self.notebook)
         self.runTab = RunTab(self.notebook)
         self.exitTab = wx.Panel(self.notebook)
@@ -395,7 +421,7 @@ class EPCOptionsBox(wx.Panel):
 
         self.notebook.SetFont(mainFont)
 
-        self.notebook.AddPage(self.setUpTab, "       Setup      ")
+        self.notebook.AddPage(self.setupTab, "       Setup      ")
         self.notebook.AddPage(self.calTab,   "    Calibration   ")
         self.notebook.AddPage(self.runTab,   "        Run       ")
         self.notebook.AddPage(self.exitTab,  " X ")
