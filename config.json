@@ -1,3 +1,7 @@
 {
-  "ON_RASP_PI": true
+  "ON_RASP_PI": true,
+  "NUM_FILL_HEADS": 2,
+  "LOWER_TIME": 2000,
+  "CAPPING_TIME": 3000,
+  "INDEX_TIME": 2000
 }
