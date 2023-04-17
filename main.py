@@ -2,6 +2,7 @@ import wx
 import os
 import sys
 import json
+#from machineScript import *
 
 conf = {}
 
@@ -10,15 +11,18 @@ with open(os.path.split(os.path.abspath(sys.argv[0]))[0] + '//config.json', 'r')
 
 
 class NumPad(wx.Dialog):
-    def __init__(self, parent):
+    def __init__(self, parent, text):
         wx.Dialog.__init__(self, parent)
 
+        self.Bind(wx.EVT_CLOSE, self.onClose)
+
         self.parent = parent
+        self.text = text
         self.CreateCtrls()
         self.DoLayout()
 
     def CreateCtrls(self):
-        self.value = wx.TextCtrl(self, style=wx.TE_RIGHT | wx.TE_READONLY, value=self.parent.Value)
+        self.value = wx.TextCtrl(self, style=wx.TE_RIGHT | wx.TE_READONLY, value=self.text.Value)
         self.btn1 = wx.Button(self, label="1")
         self.btn2 = wx.Button(self, label="2")
         self.btn3 = wx.Button(self, label="3")
@@ -158,15 +162,133 @@ class NumPad(wx.Dialog):
             self.value.Value = self.value.Value[1:]
 
     def onBtnEnter(self, event):
-        self.parent.Value = self.value.Value
+        self.text.Value = self.value.Value
+        #self.parent.parent.Enable()
         self.Close()
 
     def onLeave(self, event):
         if conf['ON_RASP_PI']:
             self.Close()
 
-    def SetValue(self, value):
+    def setValue(self, value):
         self.value.Value = value
+
+    def onClose(self, event):
+        self.parent.parent.Enable()
+        event.Skip()
+
+class ManualTimeFill(wx.Dialog):
+    def __init__(self, parent):
+        wx.Dialog.__init__(self, parent, size=(800, 480))
+
+        self.time = 0
+
+        self.parent = parent
+        self.CreateCtrls()
+        self.DoLayout()
+
+    def CreateCtrls(self):
+        mainFont = wx.Font(12, wx.FONTFAMILY_DEFAULT, wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_BOLD)
+        largeFont = wx.Font(48, wx.FONTFAMILY_DEFAULT, wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_BOLD)
+        mediumFont = wx.Font(24, wx.FONTFAMILY_DEFAULT, wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_BOLD)
+
+        self.lStatus = wx.StaticText(self, label="Manual Fill\nStatus", style=wx.TE_CENTER)
+        self.lStatus.SetFont(mediumFont)
+        self.lStatus.SetBackgroundColour('goldenrod')
+
+        self.tStatus = wx.TextCtrl(self, style=wx.TE_READONLY, value="READY")
+        self.tStatus.SetFont(mainFont)
+
+        self.saveExitBtn = wx.Button(self, label="Save Time\nand Exit")
+        self.saveExitBtn.SetFont(mediumFont)
+        self.saveExitBtn.Bind(wx.EVT_BUTTON, self.onSaveExitBtn)
+
+        self.lowerBtn = wx.Button(self, label="Lower\nTool Heads")
+        self.lowerBtn.SetFont(mediumFont)
+        self.lowerBtn.Bind(wx.EVT_BUTTON, self.onLowerBtn)
+
+        self.startFillBtn = wx.Button(self, label="Start Fill")
+        self.startFillBtn.SetFont(mediumFont)
+        self.startFillBtn.Bind(wx.EVT_BUTTON, self.onStartFillBtn)
+
+        self.stopFillBtn = wx.Button(self, label="Stop Fill")
+        self.stopFillBtn.SetFont(mediumFont)
+        self.stopFillBtn.Bind(wx.EVT_BUTTON, self.onStopFillBtn)
+
+        self.raiseBtn = wx.Button(self, label="Raise\nTool Heads")
+        self.raiseBtn.SetFont(mediumFont)
+        self.raiseBtn.Bind(wx.EVT_BUTTON, self.onRaiseBtn)
+
+        self.indexBtn = wx.Button(self, label="Cycle Indexer")
+        self.indexBtn.SetFont(mediumFont)
+        self.indexBtn.Bind(wx.EVT_BUTTON, self.onIndexBtn)
+
+        self.stopBtn = wx.Button(self, label="Stop All")
+        self.stopBtn.SetBackgroundColour('red')
+        self.stopBtn.SetFont(mediumFont)
+        self.stopBtn.Bind(wx.EVT_BUTTON, self.onStopBtn)
+
+        self.startFillBtn.Disable()
+        self.stopFillBtn.Disable()
+        self.raiseBtn.Disable()
+
+    def DoLayout(self):
+        hsizer = wx.BoxSizer(wx.HORIZONTAL)
+        vsizerL = wx.BoxSizer(wx.VERTICAL)
+        vsizerM = wx.BoxSizer(wx.VERTICAL)
+        vsizerR = wx.BoxSizer(wx.VERTICAL)
+
+        vsizerL.Add(self.lStatus, 0, wx.EXPAND | wx.ALL, 5)
+        vsizerL.Add(self.tStatus, 1, wx.EXPAND | wx.ALL, 5)
+        vsizerL.Add(self.saveExitBtn, 1, wx.EXPAND | wx.ALL, 5)
+
+        vsizerM.Add(self.lowerBtn, 1, wx.EXPAND | wx.ALL, 5)
+        vsizerM.Add(self.raiseBtn, 1, wx.EXPAND | wx.ALL, 5)
+        vsizerM.Add(self.indexBtn, 1, wx.EXPAND | wx.ALL, 5)
+
+        vsizerR.Add(self.startFillBtn, 1, wx.EXPAND | wx.ALL, 5)
+        vsizerR.Add(self.stopFillBtn, 1, wx.EXPAND | wx.ALL, 5)
+        vsizerR.Add(self.stopBtn, 1, wx.EXPAND | wx.ALL, 5)
+
+        hsizer.Add(vsizerL, 1, wx.EXPAND)
+        hsizer.Add(vsizerM, 1, wx.EXPAND)
+        hsizer.Add(vsizerR, 1, wx.EXPAND)
+
+        self.SetSizer(hsizer)
+
+    def onSaveExitBtn(self, event):
+        self.parent.Value = str(self.time)
+        self.Close()
+
+    def onLowerBtn(self, event):
+        self.saveExitBtn.Disable()
+        self.lowerBtn.Disable()
+        self.startFillBtn.Enable()
+        self.raiseBtn.Enable()
+        self.indexBtn.Disable()
+
+    def onStartFillBtn(self, event):
+        self.startFillBtn.Disable()
+        self.stopFillBtn.Enable()
+        self.raiseBtn.Disable()
+
+    def onStopFillBtn(self, event):
+        self.startFillBtn.Enable()
+        self.stopFillBtn.Disable()
+        self.raiseBtn.Enable()
+
+    def onRaiseBtn(self, event):
+        self.saveExitBtn.Enable()
+        self.lowerBtn.Enable()
+        self.startFillBtn.Disable()
+        self.raiseBtn.Disable()
+        self.indexBtn.Enable()
+
+    def onIndexBtn(self, event):
+        pass
+
+    def onStopBtn(self, event):
+        pass
 
 
 class SetUpTab(wx.Panel):
@@ -194,13 +316,13 @@ class SetUpTab(wx.Panel):
         self.btn1500.SetFont(mediumFont)
         self.btn1500.Bind(wx.EVT_BUTTON, self.onBtn1500)
 
+        self.saveBtn = wx.Button(self, label="Save Profile")
+        self.saveBtn.SetFont(mediumFont)
+        self.saveBtn.Bind(wx.EVT_BUTTON, self.onSaveBtn)
+
         self.loadBtn = wx.Button(self, label="Load Profile")
         self.loadBtn.SetFont(mediumFont)
         self.loadBtn.Bind(wx.EVT_BUTTON, self.onLoadBtn)
-
-        self.lastBtn = wx.Button(self, label="Load Last Used")
-        self.lastBtn.SetFont(mediumFont)
-        self.loadBtn.Bind(wx.EVT_BUTTON, self.onLastBtn)
 
     def DoLayout(self):
         vsizer = wx.BoxSizer(wx.VERTICAL)
@@ -212,8 +334,8 @@ class SetUpTab(wx.Panel):
         hsizer1.Add(self.btn750, 1, wx.EXPAND | wx.ALL, 5)
         hsizer1.Add(self.btn1500, 1, wx.EXPAND | wx.ALL, 5)
 
+        hsizer2.Add(self.saveBtn, 1, wx.EXPAND | wx.ALL, 5)
         hsizer2.Add(self.loadBtn, 1, wx.EXPAND | wx.ALL, 5)
-        hsizer2.Add(self.lastBtn, 1, wx.EXPAND | wx.ALL, 5)
 
         vsizer.Add(hsizer1, 2, wx.EXPAND)
         vsizer.Add(hsizer2, 1, wx.EXPAND)
@@ -226,10 +348,10 @@ class SetUpTab(wx.Panel):
     def onBtn1500(self, event):
         self.setVolume(1500)
 
-    def onLoadBtn(self, event):
+    def onSaveBtn(self, event):
         pass
 
-    def onLastBtn(self, event):
+    def onLoadBtn(self, event):
         pass
 
     def setVolume(self, vol):
@@ -268,12 +390,14 @@ class CalTab(wx.Panel):
         self.enterTimeBtn = wx.Button(self, label="Enter Time")
         self.enterTimeBtn.SetFont(mediumFont)
 
-        self.timeNumPad = NumPad(self.tTime)
+        self.timeNumPad = NumPad(self, self.tTime)
         self.enterTimeBtn.Bind(wx.EVT_BUTTON, self.onEnterTimeBtn)
 
-        self.saveBtn = wx.Button(self, label="Save Profile")
-        self.saveBtn.SetFont(mediumFont)
-        self.saveBtn.Bind(wx.EVT_BUTTON, self.onSaveBtn)
+        self.manualTimeBtn = wx.Button(self, label="Manual Time Fill")
+        self.manualTimeBtn.SetFont(mediumFont)
+
+        self.manualTimeFill = ManualTimeFill(self.tTime)
+        self.manualTimeBtn.Bind(wx.EVT_BUTTON, self.onManualTimeBtn)
 
         self.lVol = wx.StaticText(self, label="Volume (mL)")
         self.lVol.SetFont(mainFont)
@@ -284,7 +408,7 @@ class CalTab(wx.Panel):
         self.enterVolBtn = wx.Button(self, label="Enter Volume")
         self.enterVolBtn.SetFont(mediumFont)
 
-        self.volNumPad = NumPad(self.tVol)
+        self.volNumPad = NumPad(self, self.tVol)
         self.enterVolBtn.Bind(wx.EVT_BUTTON, self.onEnterVolBtn)
 
         self.recalcBtn = wx.Button(self, label="Recalculate Time")
@@ -299,7 +423,7 @@ class CalTab(wx.Panel):
         vsizerL.Add(self.lTime, 0, wx.CENTER | wx.TOP, 5)
         vsizerL.Add(self.tTime, 0, wx.EXPAND | wx.ALL, 5)
         vsizerL.Add(self.enterTimeBtn, 1, wx.EXPAND | wx.ALL, 5)
-        vsizerL.Add(self.saveBtn, 1, wx.EXPAND | wx.ALL, 5)
+        vsizerL.Add(self.manualTimeBtn, 1, wx.EXPAND | wx.ALL, 5)
 
         vsizerR.Add(self.lVol, 0, wx.CENTER | wx.TOP, 5)
         vsizerR.Add(self.tVol, 0, wx.EXPAND | wx.ALL, 5)
@@ -313,14 +437,16 @@ class CalTab(wx.Panel):
 
     def onEnterTimeBtn(self, event):
         self.timeNumPad.Show()
-        self.timeNumPad.SetValue(self.tTime.Value)
+        self.timeNumPad.setValue(self.tTime.GetValue())
+        self.parent.Disable()
 
-    def onSaveBtn(self, event):
-        pass
+    def onManualTimeBtn(self, event):
+        self.manualTimeFill.Show()
 
     def onEnterVolBtn(self, event):
         self.volNumPad.Show()
-        self.volNumPad.SetValue(self.tVol.Value)
+        self.volNumPad.setValue(self.tVol.GetValue())
+        self.parent.Disable()
 
     def onRecalcBtn(self, event):
 
@@ -352,7 +478,7 @@ class RunTab(wx.Panel):
         self.lStatus.SetFont(mediumFont)
         self.lStatus.SetBackgroundColour('goldenrod')
 
-        self.tStatus = wx.TextCtrl(self, style=wx.TE_READONLY, value="READY")
+        self.tStatus = wx.TextCtrl(self, style=wx.TE_READONLY | wx.TE_MULTILINE | wx.TE_WORDWRAP, value="READY\n")
         self.tStatus.SetFont(mainFont)
 
         self.lFillCt = wx.StaticText(self, label="Pouches Filled:", style=wx.TE_CENTER)
@@ -361,17 +487,35 @@ class RunTab(wx.Panel):
         self.tFillCt = wx.TextCtrl(self, style=wx.TE_READONLY | wx.TE_RIGHT, value="0")
         self.tFillCt.SetFont(mainFont)
 
+        self.lAdjustCycles = wx.StaticText(self, label="# Cycles", style=wx.TE_CENTER)
+        self.lAdjustCycles.SetFont(mediumFont)
+
+        self.increaseCyclesBtn = wx.Button(self, label="^")
+        self.increaseCyclesBtn.SetFont(largeFont)
+        self.increaseCyclesBtn.Bind(wx.EVT_BUTTON, self.onIncreaseCyclesBtn)
+
+        self.decreaseCyclesBtn = wx.Button(self, label="v")
+        self.decreaseCyclesBtn.SetFont(largeFont)
+        self.decreaseCyclesBtn.Bind(wx.EVT_BUTTON, self.onDecreaseCyclesBtn)
+
+        self.tNumCycles = wx.TextCtrl(self, style=wx.TE_READONLY | wx.TE_RIGHT, value=str(self.parent.parent.cycles))
+        self.tNumCycles.SetFont(mediumFont)
+
         self.runBtn = wx.Button(self, label="Run")
         self.runBtn.SetBackgroundColour('lime green')
         self.runBtn.SetFont(mediumFont)
+        self.runBtn.Bind(wx.EVT_BUTTON, self.onRunBtn)
 
         self.stopBtn = wx.Button(self, label="Stop")
         self.stopBtn.SetBackgroundColour('red')
         self.stopBtn.SetFont(mediumFont)
+        self.stopBtn.Bind(wx.EVT_BUTTON, self.onStopBtn)
 
     def DoLayout(self):
         hsizer = wx.BoxSizer(wx.HORIZONTAL)
         vsizerL = wx.BoxSizer(wx.VERTICAL)
+        vsizerM = wx.BoxSizer(wx.VERTICAL)
+
         vsizerR = wx.BoxSizer(wx.VERTICAL)
         hsizerL = wx.BoxSizer(wx.HORIZONTAL)
 
@@ -382,13 +526,34 @@ class RunTab(wx.Panel):
         vsizerL.Add(self.tStatus, 1, wx.EXPAND | wx.ALL, 5)
         vsizerL.Add(hsizerL, 0, wx.EXPAND | wx.ALL, 5)
 
+        vsizerM.Add(self.lAdjustCycles, 0, wx.EXPAND | wx.ALL, 5)
+        vsizerM.Add(self.tNumCycles, 0, wx.EXPAND | wx.ALL, 5)
+        vsizerM.Add(self.increaseCyclesBtn, 1, wx.EXPAND | wx.ALL, 5)
+        vsizerM.Add(self.decreaseCyclesBtn, 1, wx.EXPAND | wx.ALL, 5)
+
         vsizerR.Add(self.runBtn, 1, wx.EXPAND | wx.ALL, 5)
         vsizerR.Add(self.stopBtn, 1, wx.EXPAND | wx.ALL, 5)
 
         hsizer.Add(vsizerL, 1, wx.EXPAND)
+        hsizer.Add(vsizerM, 0, wx.EXPAND)
         hsizer.Add(vsizerR, 1, wx.EXPAND)
 
         self.SetSizer(hsizer)
+
+    def onRunBtn(self, event):
+        self.parent.parent.Running = True
+
+    def onStopBtn(self, event):
+        pass
+
+    def onIncreaseCyclesBtn(self, event):
+        self.parent.parent.cycles += 1
+        self.tNumCycles.Value = str(self.parent.parent.cycles)
+
+    def onDecreaseCyclesBtn(self, event):
+        if self.parent.parent.cycles > 1:
+            self.parent.parent.cycles -= 1
+            self.tNumCycles.Value = str(self.parent.parent.cycles)
 
 
 class EPCNotebook(wx.Notebook):
@@ -403,6 +568,11 @@ class EPCOptionsBox(wx.Panel):
 
         self.selection = 750
         self.rate = 1500 / 8500
+        self.cycles = 1
+
+        self.Running = False
+
+        #self.machine = Machine()
 
         self.CreateCtrls()
         self.DoLayout()
@@ -426,7 +596,7 @@ class EPCOptionsBox(wx.Panel):
         self.notebook.AddPage(self.runTab,   "        Run       ")
         self.notebook.AddPage(self.exitTab,  " X ")
 
-        self.notebook.Bind(wx.EVT_NOTEBOOK_PAGE_CHANGED, self.onExitTab)
+        self.notebook.Bind(wx.EVT_NOTEBOOK_PAGE_CHANGED, self.onTabChange)
 
     def DoLayout(self):
         sizer = wx.BoxSizer(wx.VERTICAL)
@@ -434,8 +604,11 @@ class EPCOptionsBox(wx.Panel):
         self.SetSizer(sizer)
         self.Fit()
 
-    def onExitTab(self, event):
-        if event.GetSelection() == 3:
+    def onTabChange(self, event):
+        if self.Running:
+            self.notebook.ChangeSelection(2)
+            self.runTab.tStatus.SetValue("Please wait until process finished to change tab\n\n" + self.runTab.tStatus.GetValue())
+        elif event.GetSelection() == 3:
             wx.Exit()
 
 
@@ -474,7 +647,7 @@ class EPC(wx.App):
 
         self.installDir = os.path.split(os.path.abspath(sys.argv[0]))[0]
 
-        frame = EPCFrame("Evergood Pi Control v0.0.1")
+        frame = EPCFrame("Evergood Pi Control v1.0.0")
         self.SetTopWindow(frame)
         frame.Show(True)
 
