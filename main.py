@@ -2,6 +2,7 @@ import wx
 import os
 import sys
 import json
+import datetime
 #from machineScript import *
 
 conf = {}
@@ -163,7 +164,6 @@ class NumPad(wx.Dialog):
 
     def onBtnEnter(self, event):
         self.text.Value = self.value.Value
-        #self.parent.parent.Enable()
         self.Close()
 
     def onLeave(self, event):
@@ -177,15 +177,21 @@ class NumPad(wx.Dialog):
         self.parent.parent.Enable()
         event.Skip()
 
+
 class ManualTimeFill(wx.Dialog):
-    def __init__(self, parent):
+    def __init__(self, parent, text):
         wx.Dialog.__init__(self, parent, size=(800, 480))
 
         self.time = 0
+        self.Bind(wx.EVT_CLOSE, self.onClose)
 
         self.parent = parent
+        self.text = text
         self.CreateCtrls()
         self.DoLayout()
+
+        if conf['ON_RASP_PI']:
+            self.ShowFullScreen(True)
 
     def CreateCtrls(self):
         mainFont = wx.Font(12, wx.FONTFAMILY_DEFAULT, wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_BOLD)
@@ -257,7 +263,7 @@ class ManualTimeFill(wx.Dialog):
         self.SetSizer(hsizer)
 
     def onSaveExitBtn(self, event):
-        self.parent.Value = str(self.time)
+        self.text.Value = str(self.time)
         self.Close()
 
     def onLowerBtn(self, event):
@@ -289,6 +295,10 @@ class ManualTimeFill(wx.Dialog):
 
     def onStopBtn(self, event):
         pass
+
+    def onClose(self, event):
+        self.parent.parent.Enable()
+        event.Skip()
 
 
 class SetUpTab(wx.Panel):
@@ -349,10 +359,25 @@ class SetUpTab(wx.Panel):
         self.setVolume(1500)
 
     def onSaveBtn(self, event):
-        pass
+        fileName = str(datetime.datetime.now()).replace(':', '').replace(' ', '_')[:-7] + ".evgp"
+        with open(self.parent.parent.parent.parent.installDir + "\\Profiles\\" + fileName, 'w') as profile:
+            profile.write(str(self.parent.parent.rate))
+
+            profile.close()
 
     def onLoadBtn(self, event):
-        pass
+        with wx.FileDialog(self, "Open saved profile", wildcard="EVGP files (*.evgp)|*.evgp") as fileDialog:
+            fileDialog.SetDirectory(self.parent.parent.parent.parent.installDir + "\\Profiles")
+            if fileDialog.ShowModal() == wx.ID_CANCEL:
+                return  # the user changed their mind
+
+            pathname = fileDialog.GetPath()
+            try:
+                with open(pathname, 'r') as profile:
+                    self.parent.parent.rate = float(profile.read())
+                    self.setVolume(self.parent.parent.selection)
+            except IOError:
+                wx.LogError("Cannot open file")
 
     def setVolume(self, vol):
         self.parent.parent.selection = vol
@@ -396,7 +421,7 @@ class CalTab(wx.Panel):
         self.manualTimeBtn = wx.Button(self, label="Manual Time Fill")
         self.manualTimeBtn.SetFont(mediumFont)
 
-        self.manualTimeFill = ManualTimeFill(self.tTime)
+        self.manualTimeFill = ManualTimeFill(self, self.tTime)
         self.manualTimeBtn.Bind(wx.EVT_BUTTON, self.onManualTimeBtn)
 
         self.lVol = wx.StaticText(self, label="Volume (mL)")
@@ -442,6 +467,7 @@ class CalTab(wx.Panel):
 
     def onManualTimeBtn(self, event):
         self.manualTimeFill.Show()
+        self.parent.Disable()
 
     def onEnterVolBtn(self, event):
         self.volNumPad.Show()
@@ -490,11 +516,11 @@ class RunTab(wx.Panel):
         self.lAdjustCycles = wx.StaticText(self, label="# Cycles", style=wx.TE_CENTER)
         self.lAdjustCycles.SetFont(mediumFont)
 
-        self.increaseCyclesBtn = wx.Button(self, label="^")
+        self.increaseCyclesBtn = wx.Button(self, label="+")
         self.increaseCyclesBtn.SetFont(largeFont)
         self.increaseCyclesBtn.Bind(wx.EVT_BUTTON, self.onIncreaseCyclesBtn)
 
-        self.decreaseCyclesBtn = wx.Button(self, label="v")
+        self.decreaseCyclesBtn = wx.Button(self, label="-")
         self.decreaseCyclesBtn.SetFont(largeFont)
         self.decreaseCyclesBtn.Bind(wx.EVT_BUTTON, self.onDecreaseCyclesBtn)
 
@@ -562,7 +588,7 @@ class EPCNotebook(wx.Notebook):
         self.parent = parent
 
 
-class EPCOptionsBox(wx.Panel):
+class EPCPanel(wx.Panel):
     def __init__(self, parent):
         wx.Panel.__init__(self, parent)
 
@@ -571,6 +597,8 @@ class EPCOptionsBox(wx.Panel):
         self.cycles = 1
 
         self.Running = False
+
+        self.parent = parent
 
         #self.machine = Machine()
 
@@ -607,32 +635,17 @@ class EPCOptionsBox(wx.Panel):
     def onTabChange(self, event):
         if self.Running:
             self.notebook.ChangeSelection(2)
-            self.runTab.tStatus.SetValue("Please wait until process finished to change tab\n\n" + self.runTab.tStatus.GetValue())
+            self.runTab.tStatus.SetValue("Process running\nPlease wait to change tab\n\n"
+                                         + self.runTab.tStatus.GetValue())
         elif event.GetSelection() == 3:
             wx.Exit()
 
 
-class EPCPanel(wx.Panel):
-    def __init__(self, parent):
-        wx.Panel.__init__(self, parent)
-
-        self.CreateCtrls()
-        self.DoLayout()
-
-    def CreateCtrls(self):
-
-        self.options = EPCOptionsBox(self)
-
-    def DoLayout(self):
-        sizer = wx.BoxSizer(wx.HORIZONTAL)
-        sizer.Add(self.options, 1, wx.EXPAND)
-        self.SetSizer(sizer)
-        self.Fit()
-
 class EPCFrame(wx.Frame):
-    def __init__(self, title):
+    def __init__(self, parent, title):
         wx.Frame.__init__(self, None, -1, title, size=(800, 480))
 
+        self.parent = parent
         self.CreateCtrls()
 
     def CreateCtrls(self):
@@ -647,7 +660,7 @@ class EPC(wx.App):
 
         self.installDir = os.path.split(os.path.abspath(sys.argv[0]))[0]
 
-        frame = EPCFrame("Evergood Pi Control v1.0.0")
+        frame = EPCFrame(self, "Evergood Pi Control v1.0.0")
         self.SetTopWindow(frame)
         frame.Show(True)
 
@@ -661,6 +674,7 @@ def main():
 
     app = EPC(False)
     app.MainLoop()
+
 
 if __name__ == '__main__':
     main()
