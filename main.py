@@ -3,15 +3,19 @@ import os
 import sys
 import json
 import datetime
+import time
 #from machineScript import *
 
 conf = {}
 
-with open(os.path.split(os.path.abspath(sys.argv[0]))[0] + '//config.json', 'r') as file:
+with open(os.path.split(os.path.abspath(sys.argv[0]))[0] + '/config.json', 'r') as file:
     conf = json.load(file)
 
 
 class NumPad(wx.Dialog):
+    """
+    A class that creates a number pad dialog for entering numbers into a wx.TextCtrl
+    """
     def __init__(self, parent, text):
         wx.Dialog.__init__(self, parent)
 
@@ -179,10 +183,15 @@ class NumPad(wx.Dialog):
 
 
 class ManualTimeFill(wx.Dialog):
+    """
+    A class that holds a manual fill control dialog
+    """
     def __init__(self, parent, text):
         wx.Dialog.__init__(self, parent, size=(800, 480))
 
-        self.time = 0
+        self.fillTime = 0
+        self.start = 0
+
         self.Bind(wx.EVT_CLOSE, self.onClose)
 
         self.parent = parent
@@ -193,6 +202,7 @@ class ManualTimeFill(wx.Dialog):
         if conf['ON_RASP_PI']:
             self.ShowFullScreen(True)
 
+
     def CreateCtrls(self):
         mainFont = wx.Font(12, wx.FONTFAMILY_DEFAULT, wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_BOLD)
         largeFont = wx.Font(48, wx.FONTFAMILY_DEFAULT, wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_BOLD)
@@ -202,7 +212,7 @@ class ManualTimeFill(wx.Dialog):
         self.lStatus.SetFont(mediumFont)
         self.lStatus.SetBackgroundColour('goldenrod')
 
-        self.tStatus = wx.TextCtrl(self, style=wx.TE_READONLY, value="READY")
+        self.tStatus = wx.TextCtrl(self, style=wx.TE_READONLY | wx.TE_MULTILINE | wx.TE_WORDWRAP, value="Ready")
         self.tStatus.SetFont(mainFont)
 
         self.saveExitBtn = wx.Button(self, label="Save Time\nand Exit")
@@ -263,7 +273,9 @@ class ManualTimeFill(wx.Dialog):
         self.SetSizer(hsizer)
 
     def onSaveExitBtn(self, event):
-        self.text.Value = str(self.time)
+        self.text.Value = str(round(1000 * self.fillTime))
+        self.fillTime = 0
+        self.tStatus.SetValue("Ready")
         self.Close()
 
     def onLowerBtn(self, event):
@@ -277,11 +289,15 @@ class ManualTimeFill(wx.Dialog):
         self.startFillBtn.Disable()
         self.stopFillBtn.Enable()
         self.raiseBtn.Disable()
+        self.start = time.time()
+        self.tStatus.SetValue("Began filling\n\n" + self.tStatus.GetValue())
 
     def onStopFillBtn(self, event):
         self.startFillBtn.Enable()
         self.stopFillBtn.Disable()
         self.raiseBtn.Enable()
+        self.fillTime += time.time() - self.start
+        self.tStatus.SetValue("Recorded fill time of " + str(round(1000 * self.fillTime)) + " ms\n\n" + self.tStatus.GetValue())
 
     def onRaiseBtn(self, event):
         self.saveExitBtn.Enable()
@@ -302,6 +318,9 @@ class ManualTimeFill(wx.Dialog):
 
 
 class SetUpTab(wx.Panel):
+    """
+    A class that holds the setup panel
+    """
     def __init__(self, parent):
         wx.Panel.__init__(self, parent)
 
@@ -360,14 +379,14 @@ class SetUpTab(wx.Panel):
 
     def onSaveBtn(self, event):
         fileName = str(datetime.datetime.now()).replace(':', '').replace(' ', '_')[:-7] + ".evgp"
-        with open(self.parent.parent.parent.parent.installDir + "\\Profiles\\" + fileName, 'w') as profile:
+        with open(self.parent.parent.parent.parent.installDir + "/Profiles/" + fileName, 'w') as profile:
             profile.write(str(self.parent.parent.rate))
 
             profile.close()
 
     def onLoadBtn(self, event):
         with wx.FileDialog(self, "Open saved profile", wildcard="EVGP files (*.evgp)|*.evgp") as fileDialog:
-            fileDialog.SetDirectory(self.parent.parent.parent.parent.installDir + "\\Profiles")
+            fileDialog.SetDirectory(self.parent.parent.parent.parent.installDir + "/Profiles")
             if fileDialog.ShowModal() == wx.ID_CANCEL:
                 return  # the user changed their mind
 
@@ -394,6 +413,9 @@ class SetUpTab(wx.Panel):
 
 
 class CalTab(wx.Panel):
+    """
+    A class that holds the calibration panel
+    """
     def __init__(self, parent):
         wx.Panel.__init__(self, parent)
 
@@ -467,6 +489,7 @@ class CalTab(wx.Panel):
 
     def onManualTimeBtn(self, event):
         self.manualTimeFill.Show()
+        self.manualTimeFill.SetFocus()
         self.parent.Disable()
 
     def onEnterVolBtn(self, event):
@@ -488,6 +511,9 @@ class CalTab(wx.Panel):
 
 
 class RunTab(wx.Panel):
+    """
+    A class that holds the run panel
+    """
     def __init__(self, parent):
         wx.Panel.__init__(self, parent)
 
@@ -504,7 +530,7 @@ class RunTab(wx.Panel):
         self.lStatus.SetFont(mediumFont)
         self.lStatus.SetBackgroundColour('goldenrod')
 
-        self.tStatus = wx.TextCtrl(self, style=wx.TE_READONLY | wx.TE_MULTILINE | wx.TE_WORDWRAP, value="READY\n")
+        self.tStatus = wx.TextCtrl(self, style=wx.TE_READONLY | wx.TE_MULTILINE | wx.TE_WORDWRAP, value="Ready\n")
         self.tStatus.SetFont(mainFont)
 
         self.lFillCt = wx.StaticText(self, label="Pouches Filled:", style=wx.TE_CENTER)
@@ -583,12 +609,18 @@ class RunTab(wx.Panel):
 
 
 class EPCNotebook(wx.Notebook):
+    """
+    A notebook class for implementing parent items in notebook tabs
+    """
     def __init__(self, parent):
         wx.Notebook.__init__(self, parent)
         self.parent = parent
 
 
 class EPCPanel(wx.Panel):
+    """
+    A class for the main app panel and function
+    """
     def __init__(self, parent):
         wx.Panel.__init__(self, parent)
 
@@ -642,6 +674,9 @@ class EPCPanel(wx.Panel):
 
 
 class EPCFrame(wx.Frame):
+    """
+    A class that holds the main app frame (for window sizing)
+    """
     def __init__(self, parent, title):
         wx.Frame.__init__(self, None, -1, title, size=(800, 480))
 
@@ -656,6 +691,9 @@ class EPCFrame(wx.Frame):
 
 
 class EPC(wx.App):
+    """
+    A class that holds the GUI App
+    """
     def OnInit(self):
 
         self.installDir = os.path.split(os.path.abspath(sys.argv[0]))[0]

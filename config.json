@@ -1,7 +1,53 @@
 {
-  "ON_RASP_PI": true,
+  "ON_RASP_PI": false,
   "NUM_FILL_HEADS": 2,
   "LOWER_TIME": 2000,
   "CAPPING_TIME": 3000,
-  "INDEX_TIME": 2000
+  "INDEX_TIME": 2000,
+  "PUL_DELAY": 0.0000001,
+  "GPIO":
+  {
+    "SWITCHES":
+    {
+      "N2_SW": 0,
+      "WINE1_SW": 1,
+      "WINE2_SW": 2,
+      "CAPPING_SW": 3
+    },
+    "IR_BEAMS":
+    {
+      "LEFT": 16,
+      "MID": 17,
+      "RIGHT": 18
+    },
+    "LIGHT":
+    {
+      "RED": 22,
+      "GREEN": 23,
+      "BLUE": 24
+    },
+    "N2": 21,
+    "WINE1": 27,
+    "WINE2": 26,
+    "INDEXER": 25,
+    "N2_STEPPER":
+    {
+      "ENA": 6,
+      "DIR": 5,
+      "PUL": 4
+    },
+    "WINE_STEPPER":
+    {
+      "ENA": 9,
+      "DIR": 8,
+      "PUL": 7
+    },
+    "CAPPING_STEPPER":
+    {
+      "ENA": 12,
+      "DIR": 11,
+      "PUL": 10
+    },
+    "MOTOR_PWR": 33
+  }
 }
