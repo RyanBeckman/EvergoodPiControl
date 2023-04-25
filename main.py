@@ -187,7 +187,7 @@ class ManualTimeFill(wx.Dialog):
     A class that holds a manual fill control dialog
     """
     def __init__(self, parent, text):
-        wx.Dialog.__init__(self, parent, size=(800, 480))
+        wx.Dialog.__init__(self, parent, size=(800, 504))
 
         self.fillTime = 0
         self.start = 0
@@ -198,10 +198,6 @@ class ManualTimeFill(wx.Dialog):
         self.text = text
         self.CreateCtrls()
         self.DoLayout()
-
-        if conf['ON_RASP_PI']:
-            self.ShowFullScreen(True)
-
 
     def CreateCtrls(self):
         mainFont = wx.Font(12, wx.FONTFAMILY_DEFAULT, wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_BOLD)
