@@ -6,110 +6,176 @@ GPIO.setmode(GPIO.BOARD)
 GPIO.setmode(GPIO.BCM)
 
 
+class StepperCtrl:
+    """
+    A class for controlling stepper motors
+    """
+    def __init__(self, ena, dir, pul):
+        GPIO.setup(ena, GPIO.OUT)
+        GPIO.setup(dir, GPIO.OUT)
+        GPIO.setup(pul, GPIO.OUT)
+        self.ena = ena
+        self.dir = dir
+        self.pul = pul
+
+    def down(self, dur, delay):
+        GPIO.output(self.ena, GPIO.HIGH)
+        time.sleep(0.5) #ena time min is 0.2s
+        GPIO.output(self.dir, GPIO.LOW)
+        for i in range(dur):
+            GPIO.output(self.pul, GPIO.HIGH)
+            time.sleep(delay)
+            GPIO.output(self.pul, GPIO.LOW)
+            time.sleep(delay)
+
+        GPIO.output(self.ena, GPIO.LOW)
+        time.sleep(0.5)
+
+    def up(self, dur, delay):
+        GPIO.output(self.ena, GPIO.HIGH)
+        time.sleep(0.5) #ena time min is 0.2s
+        GPIO.output(self.dir, GPIO.HIGH)
+        for i in range(dur):
+            GPIO.output(self.pul, GPIO.HIGH)
+            time.sleep(delay)
+            GPIO.output(self.pul, GPIO.LOW)
+            time.sleep(delay)
+
+        GPIO.output(self.ena, GPIO.LOW)
+        time.sleep(0.5)
+
+
+class MachineSwitch:
+    """
+    A class for input switches (closed is high, open is low)
+    """
+    def __init__(self, pin):
+        GPIO.setup(pin, GPIO.IN, pull_up_down=GPIO.PUD_DOWN)
+        self.pin = pin
+
+    def getState(self):
+        return int(GPIO.input(self.pin) == GPIO.HIGH)
+
+
+class MachineIR:
+    """
+    A class for IR beams (broken is low, connected is high)
+    """
+    def __init__(self, pin):
+        GPIO.setup(pin, GPIO.IN, pull_up_down=GPIO.PUD_UP)
+        self.pin = pin
+
+
+    def getState(self):
+        return int(GPIO.input(self.pin) != GPIO.HIGH)
+
+
 class Machine:
-  def __init__(self, gpio):
-    self.GPIOpin = gpio
+    """
+    A class for interfacing with the GPIO pins controlling the filling machine
+    """
+    def __init__(self, gpio):
 
-    #set to no fault
-    self.fault = 0
+        #set to no fault
+        self.fault = 0
 
-    self.faultLightRed = self.GPIOpin[0]
-    self.faultLightYellow = self.GPIOpin[1]
-    self.faultLightGreen = self.GPIOpin[2]
+        self.faultLightRed = gpio["LIGHT"]["RED"]
+        self.faultLightYellow = gpio["LIGHT"]["YELLOW"]
+        self.faultLightGreen = gpio["LIGHT"]["GREEN"]
 
-    self.machineSwitch1 = self.GPIOpin[3]
-    self.machineSwitch2 = self.GPIOpin[4]
-    self.machineSwitch3 = self.GPIOpin[5]
+        self.n2sw = MachineSwitch(gpio["SWITCHES"]["N2_SW"])
+        self.wine1sw = MachineSwitch(gpio["SWITCHES"]["WINE1_SW"])
+        self.wine2sw = MachineSwitch(gpio["SWITCHES"]["WINE2_SW"])
+        self.cappingsw = MachineSwitch(gpio["SWITCHES"]["CAPPING_SW"])
 
+        self.irLeft = MachineIR(gpio["IR_BEAMS"]["LEFT"])
+        self.irMid = MachineIR(gpio["IR_BEAMS"]["MID"])
+        self.irRight = MachineIR(gpio["IR_BEAMS"]["RIGHT"])
 
+        self.n2 = gpio["N2"]
+        self.wine1 = gpio["WINE1"]
+        self.wine2 = gpio["WINE2"]
+        self.indexer = gpio["INDEXER"]
 
-    def machineGPIOconfiguration(self):
-       #Displays the current GPIO pins of the machine
-       print("Red light GPIO pin: ",self.faultLightRed)
-       print("Yellow light GPIO pin: ",self.faultLightYellow)
-       print("Green light GPIO pin: ",self.faultLightGreen)
+        self.n2Motor = StepperCtrl(gpio["N2_STEPPER"]["ENA"],
+                                   gpio["N2_STEPPER"]["DIR"],
+                                   gpio["N2_STEPPER"]["PUL"])
 
-       print("\n\nMachine Switch 1: ",self.machineSwitch1)
-       print("Machine Switch 2: ",self.machineSwitch2)
-       print("Machine Switch 3: ",self.machineSwitch3)
+        self.wineMotor = StepperCtrl(gpio["WINE_STEPPER"]["ENA"],
+                                     gpio["WINE_STEPPER"]["DIR"],
+                                     gpio["WINE_STEPPER"]["PUL"])
 
-       print("Current Fault Status: ",self.fault)
-    
+        self.cappingMotor = StepperCtrl(gpio["CAPPING_STEPPER"]["ENA"],
+                                        gpio["CAPPING_STEPPER"]["DIR"],
+                                        gpio["CAPPING_STEPPER"]["PUL"])
 
-    def setFault(self,status):
-    #Set the fault status of the machine
+        self.motorshutoff = gpio["MOTOR_PWR"]
 
-       #Green Light Status
-       if(status == 0):
-          self.fault =0
-       #Yellow Light Status
-       if(status ==1):
-          self.fault =1
-       #Red Light Status
-       if(status ==2):
-          self.fault =2
-
-    def getFault(self):
-    #returns the fault status of the machine
-       return(self.fault)
-
-    def faultLight(self):
-
-        #Sets the GPIO Pins as outputs
+        # Sets the GPIO Pins as outputs
         GPIO.setup(self.faultLightRed, GPIO.OUT)
         GPIO.setup(self.faultLightYellow, GPIO.OUT)
         GPIO.setup(self.faultLightGreen, GPIO.OUT)
 
+        GPIO.setup(self.n2, GPIO.OUT)
+        GPIO.setup(self.wine1, GPIO.OUT)
+        GPIO.setup(self.wine2, GPIO.OUT)
+        GPIO.setup(self.indexer, GPIO.OUT)
+        GPIO.setup(self.motorshutoff, GPIO.OUT)
+
+    def puffN2(self, delay):
+        GPIO.output(self.n2, GPIO.HIGH)
+        time.sleep(delay)
+        GPIO.output(self.n2, GPIO.LOW)
+
+    def openWine1(self):
+        GPIO.output(self.wine1, GPIO.HIGH)
+
+    def closeWine1(self):
+        GPIO.output(self.wine1, GPIO.LOW)
+
+    def openWine2(self):
+        GPIO.output(self.wine2, GPIO.HIGH)
+
+    def closeWine2(self):
+        GPIO.output(self.wine2, GPIO.LOW)
+
+    def moveIndexer(self, delay):
+        GPIO.output(self.indexer, GPIO.HIGH)
+        time.sleep(delay)
+        GPIO.output(self.indexer, GPIO.LOW)
+
+    def shutoff(self):
+        GPIO.output(self.motorshutoff, GPIO.HIGH)
+        self.closeWine1()
+        self.closeWine2()
+
+    def setFault(self, status):
+        #Set the fault status of the machine
+        self.fault = status
+        self.faultLight()
+
+    def getFault(self):
+        #returns the fault status of the machine
+        return(self.fault)
+
+    def faultLight(self):
         #Green LED
         if(self.fault==0):
-           GPIO.output(self.faultLightGreen, GPIO.HIGH)
-           GPIO.output(self.faultLightRed, GPIO.LOW)
-           GPIO.output(self.faultLightYellow, GPIO.LOW)
+            GPIO.output(self.faultLightGreen, GPIO.HIGH)
+            GPIO.output(self.faultLightRed, GPIO.LOW)
+            GPIO.output(self.faultLightYellow, GPIO.LOW)
         #Yellow LED
         if(self.fault==1):
-           GPIO.output(self.faultLightGreen, GPIO.LOW)
-           GPIO.output(self.faultLightRed, GPIO.LOW)
-           GPIO.output(self.faultLightYellow, GPIO.HIGH)
+            GPIO.output(self.faultLightGreen, GPIO.LOW)
+            GPIO.output(self.faultLightRed, GPIO.LOW)
+            GPIO.output(self.faultLightYellow, GPIO.HIGH)
         #Red LED
         if(self.fault==2):
-           GPIO.output(self.faultLightGreen, GPIO.LOW)
-           GPIO.output(self.faultLightRed, GPIO.HIGH)
-           GPIO.output(self.faultLightYellow, GPIO.LOW)
+            GPIO.output(self.faultLightGreen, GPIO.LOW)
+            GPIO.output(self.faultLightRed, GPIO.HIGH)
+            GPIO.output(self.faultLightYellow, GPIO.LOW)
 
+    def cleanUp(self):
         GPIO.cleanup()
 
-    def machineSwitch(self):
-        GPIO.setup(self.machineSwitch1, GPIO.IN, pull_up_down=GPIO.PUD_DOWN)
-        GPIO.setup(self.machineSwitch2, GPIO.IN, pull_up_down=GPIO.PUD_DOWN) 
-        GPIO.setup(self.machineSwitch3, GPIO.IN, pull_up_down=GPIO.PUD_DOWN)
-
-        if GPIO.input(self.machineSwitch1) == GPIO.HIGH:
-            print("Button 1 was pushed!")
-            #yellow
-            setFault(1)
-        if GPIO.input(self.machineSwitch2) == GPIO.HIGH:
-            print("Button 2 was pushed!")
-            #yellow
-            setFault(1) 
-        if GPIO.input(self.machineSwitch3) == GPIO.HIGH:
-            print("Button 3 was pushed!")
-            #yellow
-            setFault(1)  
-
-        GPIO.cleanup()
-
-      
-
-
-#PASS IN AN ARRAY OF GPIO PINS
-#[0] = [redFaultLight pin]
-#[1] = [yellowFaultLight pin]
-#[2] = [greenFaultLight pin]
-#[3] = [machineSwitch1 pin]
-#[4] = [machineSwitch2 pin]
-#[5] = [machineSwitch3 pin]
-
-machine1 = Machine([1,2,3,4,5,6])
-#Prints the current GPIO conficuration
-machine1.machineGPIOconfiguration()
 

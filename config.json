@@ -2,9 +2,8 @@
   "ON_RASP_PI": true,
   "NUM_FILL_HEADS": 2,
   "LOWER_TIME": 2000,
-  "CAPPING_TIME": 3000,
   "INDEX_TIME": 2000,
-  "PUL_DELAY": 0.0000001,
+  "PUL_DELAY": 0.000001,
   "GPIO":
   {
     "SWITCHES":
@@ -23,8 +22,8 @@
     "LIGHT":
     {
       "RED": 22,
-      "GREEN": 23,
-      "BLUE": 24
+      "YELLOW": 23,
+      "GREEN": 24
     },
     "N2": 21,
     "WINE1": 27,
@@ -48,6 +47,6 @@
       "DIR": 11,
       "PUL": 10
     },
-    "MOTOR_PWR": 33
+    "MOTOR_PWR": 13
   }
 }

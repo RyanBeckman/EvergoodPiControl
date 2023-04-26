@@ -1,10 +1,12 @@
+import threading
+
 import wx
 import os
 import sys
 import json
 import datetime
 import time
-#from machineScript import *
+from machineScript import *
 
 conf = {}
 
@@ -199,6 +201,10 @@ class ManualTimeFill(wx.Dialog):
         self.CreateCtrls()
         self.DoLayout()
 
+        if conf['ON_RASP_PI']:
+            self.ShowFullScreen(True)
+
+
     def CreateCtrls(self):
         mainFont = wx.Font(12, wx.FONTFAMILY_DEFAULT, wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_BOLD)
         largeFont = wx.Font(48, wx.FONTFAMILY_DEFAULT, wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_BOLD)
@@ -275,42 +281,84 @@ class ManualTimeFill(wx.Dialog):
         self.Close()
 
     def onLowerBtn(self, event):
+        self.lStatus.SetBackgroundColour('green')
+        self.parent.parent.parent.machine.setFault(0)
         self.saveExitBtn.Disable()
         self.lowerBtn.Disable()
-        self.startFillBtn.Enable()
-        self.raiseBtn.Enable()
         self.indexBtn.Disable()
+        self.tStatus.SetValue("Began lowering fill heads\n\n" + self.tStatus.GetValue())
+        self.lowerThread = threading.Thread(target=self.manLower)
+        self.lowerThread.start()
 
     def onStartFillBtn(self, event):
         self.startFillBtn.Disable()
         self.stopFillBtn.Enable()
         self.raiseBtn.Disable()
         self.start = time.time()
-        self.tStatus.SetValue("Began filling\n\n" + self.tStatus.GetValue())
+
+        if self.parent.parent.parent.machine.wine1sw.getState():
+            self.parent.parent.parent.machine.openWine1()
+            self.tStatus.SetValue("Began filling\n\n" + self.tStatus.GetValue())
+        else:
+            self.lStatus.SetBackgroundColour('goldenrod')
+            self.parent.parent.parent.machine.setFault(1)
+            self.tStatus.SetValue("Wine 1 missing pouch\n\n" + self.tStatus.GetValue())
+
+        if self.parent.parent.parent.machine.wine2sw.getState():
+            self.parent.parent.parent.machine.openWine2()
+            self.tStatus.SetValue("Began filling\n\n" + self.tStatus.GetValue())
+        else:
+            self.lStatus.SetBackgroundColour('goldenrod')
+            self.parent.parent.parent.machine.setFault(1)
+            self.tStatus.SetValue("Wine 2 missing pouch\n\n" + self.tStatus.GetValue())
 
     def onStopFillBtn(self, event):
         self.startFillBtn.Enable()
         self.stopFillBtn.Disable()
         self.raiseBtn.Enable()
+        self.parent.parent.parent.machine.closeWine1()
+        self.parent.parent.parent.machine.closeWine2()
+        self.lStatus.SetBackgroundColour('green')
+        self.parent.parent.parent.machine.setFault(0)
         self.fillTime += time.time() - self.start
         self.tStatus.SetValue("Recorded fill time of " + str(round(1000 * self.fillTime)) + " ms\n\n" + self.tStatus.GetValue())
 
     def onRaiseBtn(self, event):
-        self.saveExitBtn.Enable()
-        self.lowerBtn.Enable()
         self.startFillBtn.Disable()
         self.raiseBtn.Disable()
-        self.indexBtn.Enable()
+        self.tStatus.SetValue("Began raising fill heads\n\n" + self.tStatus.GetValue())
+        self.raiseThread = threading.Thread(target=self.manRaise)
+        self.raiseThread.start()
+
 
     def onIndexBtn(self, event):
-        pass
+        self.parent.parent.parent.machine.moveIndexer(conf["INDEX_TIME"])
+        self.tStatus.SetValue("Moving indexer\n\n" + self.tStatus.GetValue())
 
     def onStopBtn(self, event):
-        pass
+        self.parent.parent.parent.machine.shutoff()
+        self.lStatus.SetBackgroundColour('red')
+        self.parent.parent.parent.machine.setFault(2)
+        self.tStatus.SetValue("Emergency Stop\n\n" + self.tStatus.GetValue())
 
     def onClose(self, event):
         self.parent.parent.Enable()
         event.Skip()
+
+    def manLower(self):
+        self.parent.parent.parent.machine.wineMotor.down(conf["LOWER_TIME"], conf["PUL_DELAY"])
+        self.startFillBtn.Enable()
+        self.raiseBtn.Enable()
+        self.tStatus.SetValue("Fill heads lowered\n\n" + self.tStatus.GetValue())
+
+
+    def manRaise(self):
+        self.parent.parent.parent.machine.wineMotor.up(conf["LOWER_TIME"], conf["PUL_DELAY"])
+        self.saveExitBtn.Enable()
+        self.lowerBtn.Enable()
+        self.indexBtn.Enable()
+        self.tStatus.SetValue("Fill heads raised\n\n" + self.tStatus.GetValue())
+        self.lStatus.SetBackgroundColour('goldenrod')
 
 
 class SetUpTab(wx.Panel):
@@ -522,7 +570,7 @@ class RunTab(wx.Panel):
         largeFont = wx.Font(48, wx.FONTFAMILY_DEFAULT, wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_BOLD)
         mediumFont = wx.Font(24, wx.FONTFAMILY_DEFAULT, wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_BOLD)
 
-        self.lStatus = wx.StaticText(self, label="Status", style=wx.TE_CENTER)
+        self.lStatus = wx.StaticText(self, label="Status", style=wx.TE_CENTER | wx.TE_MULTILINE | wx.TE_WORDWRAP)
         self.lStatus.SetFont(mediumFont)
         self.lStatus.SetBackgroundColour('goldenrod')
 
@@ -535,7 +583,7 @@ class RunTab(wx.Panel):
         self.tFillCt = wx.TextCtrl(self, style=wx.TE_READONLY | wx.TE_RIGHT, value="0")
         self.tFillCt.SetFont(mainFont)
 
-        self.lAdjustCycles = wx.StaticText(self, label="# Cycles", style=wx.TE_CENTER)
+        self.lAdjustCycles = wx.StaticText(self, label="# Cycles", style=wx.TE_CENTER | wx.TE_MULTILINE | wx.TE_WORDWRAP)
         self.lAdjustCycles.SetFont(mediumFont)
 
         self.increaseCyclesBtn = wx.Button(self, label="+")
@@ -563,7 +611,6 @@ class RunTab(wx.Panel):
         hsizer = wx.BoxSizer(wx.HORIZONTAL)
         vsizerL = wx.BoxSizer(wx.VERTICAL)
         vsizerM = wx.BoxSizer(wx.VERTICAL)
-
         vsizerR = wx.BoxSizer(wx.VERTICAL)
         hsizerL = wx.BoxSizer(wx.HORIZONTAL)
 
@@ -590,9 +637,91 @@ class RunTab(wx.Panel):
 
     def onRunBtn(self, event):
         self.parent.parent.Running = True
+        self.runThread = threading.Thread(target=self.Run)
+        self.runThread.start()
+        self.lStatus.SetBackgroundColour('green')
+        self.parent.parent.machine.setFault(0)
+        self.tStatus.SetValue("Running\n\n" + self.tStatus.GetValue())
+
+
+    def Run(self):
+        for i in range(self.parent.parent.cycles):
+
+            motorthread1 = threading.Thread(target=self.parent.parent.parent.machine.n2Motor.down(conf["LOWER_TIME"], conf["PUL_DELAY"]))
+            motorthread2 = threading.Thread(target=self.parent.parent.parent.machine.wineMotor.down(conf["LOWER_TIME"], conf["PUL_DELAY"]))
+            motorthread3 = threading.Thread(target=self.parent.parent.parent.machine.cappingMotor.down(conf["LOWER_TIME"], conf["PUL_DELAY"]))
+
+            motorthread1.start()
+            motorthread2.start()
+            motorthread3.start()
+
+            time.sleep(conf["LOWER_TIME"])
+
+            if not (self.parent.parent.machine.irLeft.getState() \
+                    and not self.parent.parent.machine.irMid.getState() \
+                    and self.parent.machine.irRight.getState()):
+
+                self.parent.parent.parent.machine.shutoff()
+                self.lStatus.SetBackgroundColour('red')
+                self.parent.parent.parent.machine.setFault(2)
+                self.tStatus.SetValue("Capping error stopped function\n\n" + self.tStatus.GetValue())
+
+            else:
+
+                if self.parent.parent.machine.n2sw.getState():
+                    self.parent.parent.machine.puffN2()
+                    self.tStatus.SetValue("Puffed N2\n\n" + self.tStatus.GetValue())
+                else:
+                    self.lStatus.SetBackgroundColour('goldenrod')
+                    self.parent.parent.machine.setFault(1)
+                    self.tStatus.SetValue("N2 missing pouch\n\n" + self.tStatus.GetValue())
+
+                if self.parent.parent.machine.wine1sw.getState():
+                    self.parent.parent.machine.openWine1()
+                    self.tStatus.SetValue("Began filling\n\n" + self.tStatus.GetValue())
+                else:
+                    self.lStatus.SetBackgroundColour('goldenrod')
+                    self.parent.parent.machine.setFault(1)
+                    self.tStatus.SetValue("Wine 1 missing pouch\n\n" + self.tStatus.GetValue())
+
+                if self.parent.parent.machine.wine2sw.getState():
+                    self.parent.parent.machine.openWine2()
+                    self.tStatus.SetValue("Began filling\n\n" + self.tStatus.GetValue())
+                else:
+                    self.lStatus.SetBackgroundColour('goldenrod')
+                    self.parent.parent.machine.setFault(1)
+                    self.tStatus.SetValue("Wine 2 missing pouch\n\n" + self.tStatus.GetValue())
+
+                time.sleep(self.parent.parent.calTab.tTime / 1000)
+
+                self.parent.parent.machine.closeWine1()
+                self.parent.parent.machine.closeWine2()
+
+                motorthread4 = threading.Thread(target=self.parent.parent.parent.machine.n2Motor.down(conf["LOWER_TIME"], conf["PUL_DELAY"]))
+                motorthread5 = threading.Thread(target=self.parent.parent.parent.machine.wineMotor.down(conf["LOWER_TIME"], conf["PUL_DELAY"]))
+
+                motorthread4.start()
+                motorthread5.start()
+
+                time.sleep(conf["LOWER_TIME"])
+
+                self.parent.parent.machine.moveIndexer(conf["INDEX_TIME"])
+
+                motorthread6 = threading.Thread(target=self.parent.parent.parent.machine.cappingMotor.down(conf["LOWER_TIME"], conf["PUL_DELAY"]))
+
+                motorthread6.start()
+
+                time.sleep(conf["LOWER_TIME"])
+
+        self.tStatus.SetValue("Running finished\n\n" + self.tStatus.GetValue())
+        self.lStatus.SetBackgroundColour('goldenrod')
+
 
     def onStopBtn(self, event):
-        pass
+        self.parent.parent.parent.machine.shutoff()
+        self.lStatus.SetBackgroundColour('red')
+        self.parent.parent.parent.machine.setFault(2)
+        self.tStatus.SetValue("Emergency Stop\n\n" + self.tStatus.GetValue())
 
     def onIncreaseCyclesBtn(self, event):
         self.parent.parent.cycles += 1
@@ -628,7 +757,7 @@ class EPCPanel(wx.Panel):
 
         self.parent = parent
 
-        #self.machine = Machine()
+        self.machine = Machine(conf["GPIO"])
 
         self.CreateCtrls()
         self.DoLayout()
@@ -693,15 +822,19 @@ class EPC(wx.App):
     def OnInit(self):
 
         self.installDir = os.path.split(os.path.abspath(sys.argv[0]))[0]
+        self.Bind(wx.EVT_CLOSE, self.onClose)
 
-        frame = EPCFrame(self, "Evergood Pi Control v1.0.0")
+        self.frame = EPCFrame(self, "Evergood Pi Control v1.0.0")
         self.SetTopWindow(frame)
-        frame.Show(True)
+        self.frame.Show(True)
 
         return True
 
     def GetInstallDir(self):
         return self.installDir
+
+    def onClose(self):
+        self.frame.panel.machine.cleanUp()
 
 
 def main():
