@@ -825,7 +825,7 @@ class EPC(wx.App):
         self.Bind(wx.EVT_CLOSE, self.onClose)
 
         self.frame = EPCFrame(self, "Evergood Pi Control v1.0.0")
-        self.SetTopWindow(frame)
+        self.SetTopWindow(self.frame)
         self.frame.Show(True)
 
         return True
