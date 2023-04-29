@@ -1,8 +1,7 @@
 {
   "ON_RASP_PI": true,
-  "NUM_FILL_HEADS": 2,
-  "LOWER_TIME": 2000,
-  "INDEX_TIME": 2000,
+  "LOWER_TIME": 2,
+  "INDEX_TIME": 2,
   "PUL_DELAY": 0.000001,
   "GPIO":
   {

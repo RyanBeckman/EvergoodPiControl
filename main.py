@@ -661,9 +661,9 @@ class RunTab(wx.Panel):
                     and not self.parent.parent.machine.irMid.getState() \
                     and self.parent.machine.irRight.getState()):
 
-                self.parent.parent.parent.machine.shutoff()
+                self.parent.parent.machine.shutoff()
                 self.lStatus.SetBackgroundColour('red')
-                self.parent.parent.parent.machine.setFault(2)
+                self.parent.parent.machine.setFault(2)
                 self.tStatus.SetValue("Capping error stopped function\n\n" + self.tStatus.GetValue())
 
             else:
@@ -697,8 +697,8 @@ class RunTab(wx.Panel):
                 self.parent.parent.machine.closeWine1()
                 self.parent.parent.machine.closeWine2()
 
-                motorthread4 = threading.Thread(target=self.parent.parent.parent.machine.n2Motor.down(conf["LOWER_TIME"], conf["PUL_DELAY"]))
-                motorthread5 = threading.Thread(target=self.parent.parent.parent.machine.wineMotor.down(conf["LOWER_TIME"], conf["PUL_DELAY"]))
+                motorthread4 = threading.Thread(target=self.parent.parent.machine.n2Motor.down(conf["LOWER_TIME"], conf["PUL_DELAY"]))
+                motorthread5 = threading.Thread(target=self.parent.parent.machine.wineMotor.down(conf["LOWER_TIME"], conf["PUL_DELAY"]))
 
                 motorthread4.start()
                 motorthread5.start()
@@ -707,7 +707,7 @@ class RunTab(wx.Panel):
 
                 self.parent.parent.machine.moveIndexer(conf["INDEX_TIME"])
 
-                motorthread6 = threading.Thread(target=self.parent.parent.parent.machine.cappingMotor.down(conf["LOWER_TIME"], conf["PUL_DELAY"]))
+                motorthread6 = threading.Thread(target=self.parent.parent.machine.cappingMotor.down(conf["LOWER_TIME"], conf["PUL_DELAY"]))
 
                 motorthread6.start()
 
