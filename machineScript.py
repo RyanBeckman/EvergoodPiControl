@@ -2,7 +2,6 @@ import RPi.GPIO as GPIO
 import time
 
 GPIO.setwarnings(False) # Ignore warning for now
-GPIO.setmode(GPIO.BOARD)
 GPIO.setmode(GPIO.BCM)
 
 
