@@ -472,7 +472,7 @@ class CalTab(wx.Panel):
         largeFont = wx.Font(48, wx.FONTFAMILY_DEFAULT, wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_BOLD)
         mediumFont = wx.Font(24, wx.FONTFAMILY_DEFAULT, wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_BOLD)
 
-        self.lTime = wx.StaticText(self, label="Fill Time (ms)")
+        self.lTime = wx.StaticText(self, label="Fill Time (ms)", style=wx.TE_CENTER)
         self.lTime.SetFont(mainFont)
 
         self.tTime = wx.TextCtrl(self, style=wx.TE_RIGHT | wx.TE_READONLY, value=str(int(self.parent.parent.selection / self.parent.parent.rate)))
@@ -490,7 +490,7 @@ class CalTab(wx.Panel):
         self.manualTimeFill = ManualTimeFill(self, self.tTime)
         self.manualTimeBtn.Bind(wx.EVT_BUTTON, self.onManualTimeBtn)
 
-        self.lVol = wx.StaticText(self, label="Volume (mL)")
+        self.lVol = wx.StaticText(self, label="Volume (mL)", style=wx.TE_CENTER)
         self.lVol.SetFont(mainFont)
 
         self.tVol = wx.TextCtrl(self, style=wx.TE_RIGHT | wx.TE_READONLY, value=str(self.parent.parent.selection))
@@ -511,12 +511,12 @@ class CalTab(wx.Panel):
         vsizerL = wx.BoxSizer(wx.VERTICAL)
         vsizerR = wx.BoxSizer(wx.VERTICAL)
 
-        vsizerL.Add(self.lTime, 0, wx.CENTER | wx.TOP, 5)
+        vsizerL.Add(self.lTime, 0, wx.EXPAND | wx.TOP, 5)
         vsizerL.Add(self.tTime, 0, wx.EXPAND | wx.ALL, 5)
         vsizerL.Add(self.enterTimeBtn, 1, wx.EXPAND | wx.ALL, 5)
         vsizerL.Add(self.manualTimeBtn, 1, wx.EXPAND | wx.ALL, 5)
 
-        vsizerR.Add(self.lVol, 0, wx.CENTER | wx.TOP, 5)
+        vsizerR.Add(self.lVol, 0, wx.EXPAND | wx.TOP, 5)
         vsizerR.Add(self.tVol, 0, wx.EXPAND | wx.ALL, 5)
         vsizerR.Add(self.enterVolBtn, 1, wx.EXPAND | wx.ALL, 5)
         vsizerR.Add(self.recalcBtn, 1, wx.EXPAND | wx.ALL, 5)
@@ -647,9 +647,9 @@ class RunTab(wx.Panel):
     def Run(self):
         for i in range(self.parent.parent.cycles):
 
-            motorthread1 = threading.Thread(target=self.parent.parent.parent.machine.n2Motor.down(conf["LOWER_TIME"], conf["PUL_DELAY"]))
-            motorthread2 = threading.Thread(target=self.parent.parent.parent.machine.wineMotor.down(conf["LOWER_TIME"], conf["PUL_DELAY"]))
-            motorthread3 = threading.Thread(target=self.parent.parent.parent.machine.cappingMotor.down(conf["LOWER_TIME"], conf["PUL_DELAY"]))
+            motorthread1 = threading.Thread(target=self.parent.parent.machine.n2Motor.down(conf["LOWER_TIME"], conf["PUL_DELAY"]))
+            motorthread2 = threading.Thread(target=self.parent.parent.machine.wineMotor.down(conf["LOWER_TIME"], conf["PUL_DELAY"]))
+            motorthread3 = threading.Thread(target=self.parent.parent.machine.cappingMotor.down(conf["LOWER_TIME"], conf["PUL_DELAY"]))
 
             motorthread1.start()
             motorthread2.start()
@@ -718,9 +718,9 @@ class RunTab(wx.Panel):
 
 
     def onStopBtn(self, event):
-        self.parent.parent.parent.machine.shutoff()
+        self.parent.parent.machine.shutoff()
         self.lStatus.SetBackgroundColour('red')
-        self.parent.parent.parent.machine.setFault(2)
+        self.parent.parent.machine.setFault(2)
         self.tStatus.SetValue("Emergency Stop\n\n" + self.tStatus.GetValue())
 
     def onIncreaseCyclesBtn(self, event):
