@@ -642,17 +642,15 @@ class RunTab(wx.Panel):
         self.runThread.start()
         self.lStatus.SetBackgroundColour('green')
         self.parent.parent.machine.setFault(0)
-        self.tStatus.SetValue("Running\n\n" + self.tStatus.GetValue())
-
 
     def Run(self):
         for i in range(self.parent.parent.cycles):
 
-            self.tStatus.SetValue("Starting cycle" + str(i) + "\n\n" + self.tStatus.GetValue())
+            self.tStatus.SetValue("Starting cycle" + str(i + 1) + " \n\n" + self.tStatus.GetValue())
 
-            motorthread1 = threading.Thread(target=self.parent.parent.machine.n2Motor.down, args=[conf["LOWER_TIME"], conf["PUL_DELAY"]])
-            motorthread2 = threading.Thread(target=self.parent.parent.machine.wineMotor.down, args=[conf["LOWER_TIME"], conf["PUL_DELAY"]])
-            motorthread3 = threading.Thread(target=self.parent.parent.machine.cappingMotor.down, args=[conf["LOWER_TIME"], conf["PUL_DELAY"]])
+            motorthread1 = threading.Thread(target=self.parent.parent.machine.n2Motor.down, args=(conf["LOWER_TIME"], conf["PUL_DELAY"]))
+            motorthread2 = threading.Thread(target=self.parent.parent.machine.wineMotor.down, args=(conf["LOWER_TIME"], conf["PUL_DELAY"]))
+            motorthread3 = threading.Thread(target=self.parent.parent.machine.cappingMotor.down, args=(conf["LOWER_TIME"], conf["PUL_DELAY"]))
 
             motorthread1.start()
             motorthread2.start()
@@ -697,15 +695,15 @@ class RunTab(wx.Panel):
                     self.parent.parent.machine.setFault(1)
                     self.tStatus.SetValue("Wine 2 missing pouch\n\n" + self.tStatus.GetValue())
 
-                time.sleep(self.parent.parent.calTab.tTime / 1000)
+                time.sleep(int(self.parent.parent.calTab.tTime.Value / 1000))
 
                 self.parent.parent.machine.closeWine1()
                 self.parent.parent.machine.closeWine2()
 
                 self.tStatus.SetValue("Finished filling\n\n" + self.tStatus.GetValue())
 
-                motorthread4 = threading.Thread(target=self.parent.parent.machine.n2Motor.down, args=[conf["LOWER_TIME"], conf["PUL_DELAY"]])
-                motorthread5 = threading.Thread(target=self.parent.parent.machine.wineMotor.down, args=[conf["LOWER_TIME"], conf["PUL_DELAY"]])
+                motorthread4 = threading.Thread(target=self.parent.parent.machine.n2Motor.down, args=(conf["LOWER_TIME"], conf["PUL_DELAY"]))
+                motorthread5 = threading.Thread(target=self.parent.parent.machine.wineMotor.down, args=(conf["LOWER_TIME"], conf["PUL_DELAY"]))
 
                 motorthread4.start()
                 motorthread5.start()
