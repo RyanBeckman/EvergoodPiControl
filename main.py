@@ -276,6 +276,7 @@ class ManualTimeFill(wx.Dialog):
 
     def onSaveExitBtn(self, event):
         self.text.Value = str(round(1000 * self.fillTime))
+        self.parent.parent.parent.rate = round(1000 * self.fillTime) / int(self.parent.parent.parent.selection)
         self.fillTime = 0
         self.tStatus.SetValue("Ready")
         self.Close()
@@ -332,8 +333,8 @@ class ManualTimeFill(wx.Dialog):
 
 
     def onIndexBtn(self, event):
-        self.parent.parent.parent.machine.moveIndexer(conf["INDEX_TIME"])
         self.tStatus.SetValue("Moving indexer\n\n" + self.tStatus.GetValue())
+        self.parent.parent.parent.machine.moveIndexer(conf["INDEX_TIME"])
 
     def onStopBtn(self, event):
         self.parent.parent.parent.machine.shutoff()
@@ -722,8 +723,8 @@ class RunTab(wx.Panel):
                 self.parent.parent.machine.cappingMotor.down(conf["LOWER_TIME"], conf["PUL_DELAY"])
 
 
-            self.tStatus.SetValue("Running finished\n\n" + self.tStatus.GetValue())
-            self.lStatus.SetBackgroundColour('goldenrod')
+                self.tStatus.SetValue("Cycle finished\n\n" + self.tStatus.GetValue())
+                self.lStatus.SetBackgroundColour('goldenrod')
 
         self.parent.parent.Running = False
 
