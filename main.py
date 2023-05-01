@@ -647,13 +647,17 @@ class RunTab(wx.Panel):
     def Run(self):
         for i in range(self.parent.parent.cycles):
 
-            motorthread1 = threading.Thread(target=self.parent.parent.machine.n2Motor.down(conf["LOWER_TIME"], conf["PUL_DELAY"]))
-            motorthread2 = threading.Thread(target=self.parent.parent.machine.wineMotor.down(conf["LOWER_TIME"], conf["PUL_DELAY"]))
-            motorthread3 = threading.Thread(target=self.parent.parent.machine.cappingMotor.down(conf["LOWER_TIME"], conf["PUL_DELAY"]))
+            self.tStatus.SetValue("Starting cycle" + str(i) + "\n\n" + self.tStatus.GetValue())
+
+            motorthread1 = threading.Thread(target=self.parent.parent.machine.n2Motor.down, args=[conf["LOWER_TIME"], conf["PUL_DELAY"]])
+            motorthread2 = threading.Thread(target=self.parent.parent.machine.wineMotor.down, args=[conf["LOWER_TIME"], conf["PUL_DELAY"]])
+            motorthread3 = threading.Thread(target=self.parent.parent.machine.cappingMotor.down, args=[conf["LOWER_TIME"], conf["PUL_DELAY"]])
 
             motorthread1.start()
             motorthread2.start()
             motorthread3.start()
+
+            self.tStatus.SetValue("Lowering fill heads and capping\n\n" + self.tStatus.GetValue())
 
             time.sleep(conf["LOWER_TIME"])
 
@@ -678,7 +682,7 @@ class RunTab(wx.Panel):
 
                 if self.parent.parent.machine.wine1sw.getState():
                     self.parent.parent.machine.openWine1()
-                    self.tStatus.SetValue("Began filling\n\n" + self.tStatus.GetValue())
+                    self.tStatus.SetValue("Began filling Wine 1\n\n" + self.tStatus.GetValue())
                 else:
                     self.lStatus.SetBackgroundColour('goldenrod')
                     self.parent.parent.machine.setFault(1)
@@ -686,7 +690,7 @@ class RunTab(wx.Panel):
 
                 if self.parent.parent.machine.wine2sw.getState():
                     self.parent.parent.machine.openWine2()
-                    self.tStatus.SetValue("Began filling\n\n" + self.tStatus.GetValue())
+                    self.tStatus.SetValue("Began filling Wine 2\n\n" + self.tStatus.GetValue())
                 else:
                     self.lStatus.SetBackgroundColour('goldenrod')
                     self.parent.parent.machine.setFault(1)
@@ -697,31 +701,38 @@ class RunTab(wx.Panel):
                 self.parent.parent.machine.closeWine1()
                 self.parent.parent.machine.closeWine2()
 
-                motorthread4 = threading.Thread(target=self.parent.parent.machine.n2Motor.down(conf["LOWER_TIME"], conf["PUL_DELAY"]))
-                motorthread5 = threading.Thread(target=self.parent.parent.machine.wineMotor.down(conf["LOWER_TIME"], conf["PUL_DELAY"]))
+                self.tStatus.SetValue("Finished filling\n\n" + self.tStatus.GetValue())
+
+                motorthread4 = threading.Thread(target=self.parent.parent.machine.n2Motor.down, args=[conf["LOWER_TIME"], conf["PUL_DELAY"]])
+                motorthread5 = threading.Thread(target=self.parent.parent.machine.wineMotor.down, args=[conf["LOWER_TIME"], conf["PUL_DELAY"]])
 
                 motorthread4.start()
                 motorthread5.start()
 
+                self.tStatus.SetValue("Raising fill heads\n\n" + self.tStatus.GetValue())
+
                 time.sleep(conf["LOWER_TIME"])
+
+                self.tStatus.SetValue("Moving indexer\n\n" + self.tStatus.GetValue())
 
                 self.parent.parent.machine.moveIndexer(conf["INDEX_TIME"])
 
-                motorthread6 = threading.Thread(target=self.parent.parent.machine.cappingMotor.down(conf["LOWER_TIME"], conf["PUL_DELAY"]))
+                self.tStatus.SetValue("Raising capping\n\n" + self.tStatus.GetValue())
 
-                motorthread6.start()
+                self.parent.parent.machine.cappingMotor.down(conf["LOWER_TIME"], conf["PUL_DELAY"])
 
-                time.sleep(conf["LOWER_TIME"])
 
-        self.tStatus.SetValue("Running finished\n\n" + self.tStatus.GetValue())
-        self.lStatus.SetBackgroundColour('goldenrod')
+            self.tStatus.SetValue("Running finished\n\n" + self.tStatus.GetValue())
+            self.lStatus.SetBackgroundColour('goldenrod')
 
+        self.parent.parent.Running = False
 
     def onStopBtn(self, event):
         self.parent.parent.machine.shutoff()
         self.lStatus.SetBackgroundColour('red')
         self.parent.parent.machine.setFault(2)
         self.tStatus.SetValue("Emergency Stop\n\n" + self.tStatus.GetValue())
+        self.parent.parent.Running = False
 
     def onIncreaseCyclesBtn(self, event):
         self.parent.parent.cycles += 1
